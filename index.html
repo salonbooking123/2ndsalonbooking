@@ -1,678 +1,1018 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SalonConnect - Advanced Salon Booking</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"></script>
-    <style>
-        body { font-family: 'Inter', sans-serif; background-color: #f3f4f6; }
-        .fade-in { animation: fadeIn 0.3s ease-in-out; }
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-        .glass-nav { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SalonConnect - Advanced Salon Booking</title>
+  <!-- TailwindCSS v4 browser CDN (per requirements) -->
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+  <!-- Font Awesome Icons -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/js/all.min.js" defer></script>
+  <style>
+    body { font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Noto Sans, Ubuntu, Cantarell, Helvetica Neue, Arial, "Apple Color Emoji", "Segoe UI Emoji"; background-color: #f3f4f6; }
+    .fade-in { animation: fadeIn .25s ease-in-out; }
+    @keyframes fadeIn { from { opacity: 0 } to { opacity: 1 } }
+    .glass-nav { background: rgba(255,255,255,.95); backdrop-filter: blur(10px); }
+    .shadow-soft { box-shadow: 0 6px 20px rgba(0,0,0,.06); }
+    .card { background: #fff; border: 1px solid #e5e7eb; border-radius: 14px; }
+    .btn { @apply px-4 py-2 rounded-md font-medium transition; }
+  </style>
 </head>
 <body class="text-gray-800 flex flex-col min-h-screen">
+  <!-- Toasts -->
+  <div id="toast-container" class="fixed top-20 right-4 z-[9999] space-y-2"></div>
 
-    <!-- Navigation -->
-    <nav class="glass-nav fixed w-full z-50 border-b border-gray-200 shadow-sm">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex justify-between h-16">
-                <div class="flex items-center cursor-pointer" onclick="app.navigate('home')">
-                    <i class="fa-solid fa-scissors text-indigo-600 text-2xl mr-2"></i>
-                    <span class="font-bold text-xl tracking-tight text-indigo-900">SalonConnect</span>
+  <!-- Navigation -->
+  <nav class="glass-nav fixed w-full z-50 border-b border-gray-200 shadow-sm">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex justify-between h-16">
+        <div class="flex items-center cursor-pointer" onclick="app.navigate('home')">
+          <i class="fa-solid fa-scissors text-indigo-600 text-2xl mr-2"></i>
+          <span class="font-bold text-xl tracking-tight text-indigo-900">SalonConnect</span>
+        </div>
+        <div class="flex items-center space-x-2 sm:space-x-4">
+          <div class="hidden sm:flex items-center space-x-2">
+            <button onclick="app.navigate('home')" class="text-gray-600 hover:text-indigo-600 font-medium px-2 py-2">Home</button>
+            <button onclick="app.navigate('dashboard')" class="text-gray-600 hover:text-indigo-600 font-medium px-2 py-2">Dashboard</button>
+          </div>
+          <button id="open-settings" title="Settings" onclick="app.openSettings()" class="text-gray-600 hover:text-indigo-700 p-2 rounded-md">
+            <i class="fa-solid fa-gear"></i>
+          </button>
+          <div id="nav-guest" class="flex space-x-2 sm:space-x-4">
+            <button onclick="app.navigate('login')" class="text-gray-600 hover:text-indigo-600 font-medium px-3 py-2">Login</button>
+            <button onclick="app.navigate('signup')" class="bg-indigo-600 text-white hover:bg-indigo-700 px-4 py-2 rounded-md font-medium transition">Sign Up</button>
+          </div>
+          <div id="nav-user" class="hidden items-center space-x-3">
+            <span id="user-greeting" class="text-gray-700 font-medium hidden md:block"></span>
+            <button onclick="app.navigate('dashboard')" class="text-indigo-600 hover:text-indigo-800 font-medium">Dashboard</button>
+            <button onclick="app.logout()" class="text-red-500 hover:text-red-700 font-medium ml-1" title="Logout"><i class="fa-solid fa-right-from-bracket"></i></button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Main -->
+  <main id="app-root" class="flex-grow pt-20 pb-10 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto w-full"></main>
+
+  <!-- Footer -->
+  <footer class="bg-white border-t border-gray-200 mt-auto">
+    <div class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
+      <p class="text-center text-gray-500 text-sm">© <span id="year"></span> SalonConnect. All rights reserved.</p>
+    </div>
+  </footer>
+
+  <!-- Settings Modal -->
+  <div id="settings-modal" class="fixed inset-0 hidden items-center justify-center z-[9998]">
+    <div class="absolute inset-0 bg-black/50" onclick="app.closeSettings()"></div>
+    <div class="relative card w-full max-w-3xl mx-4 p-6 fade-in">
+      <div class="flex justify-between items-center mb-4">
+        <h3 class="text-xl font-bold text-gray-900">Settings & Tools</h3>
+        <button class="text-gray-400 hover:text-gray-600" onclick="app.closeSettings()"><i class="fa-solid fa-xmark text-xl"></i></button>
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <section class="bg-gray-50 p-4 rounded-lg border border-gray-200">
+          <h4 class="font-semibold text-gray-800 mb-2">Backup & Restore</h4>
+          <p class="text-sm text-gray-600 mb-3">Your data is saved in this browser. Export a backup to keep it permanent or move to another device.</p>
+          <div class="flex flex-col gap-2">
+            <button class="bg-indigo-600 text-white rounded-md px-4 py-2 hover:bg-indigo-700" onclick="app.exportData()"><i class="fa-solid fa-download mr-2"></i>Export Data (JSON)</button>
+            <label class="text-sm text-gray-700 font-medium" for="import-file">Import Data (replaces existing)</label>
+            <input id="import-file" type="file" accept="application/json" class="block w-full text-sm" />
+            <button class="bg-gray-800 text-white rounded-md px-4 py-2 hover:bg-gray-900" onclick="app.importData()"><i class="fa-solid fa-upload mr-2"></i>Import & Replace</button>
+            <button class="bg-red-50 text-red-700 border border-red-200 rounded-md px-4 py-2 hover:bg-red-100" onclick="app.resetAllData()"><i class="fa-solid fa-triangle-exclamation mr-2"></i>Reset All Data</button>
+          </div>
+        </section>
+        <section class="bg-gray-50 p-4 rounded-lg border border-gray-200">
+          <h4 class="font-semibold text-gray-800 mb-2">Make It Public</h4>
+          <ol class="text-sm text-gray-700 list-decimal ml-5 space-y-2">
+            <li>Open github.com and create a new repository.</li>
+            <li>Upload this index.html file to the repository root.</li>
+            <li>Enable GitHub Pages: Settings → Pages → Branch: main → Save.</li>
+            <li>Your app will be available at the GitHub Pages URL.</li>
+          </ol>
+          <p class="text-xs text-gray-500 mt-3">Tip: You can also deploy to Netlify or Vercel by dragging this file into their dashboards.</p>
+        </section>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const app = {
+      state: {
+        currentUser: null, // { id, name, email, role }
+        view: 'home',
+        viewParams: null,
+        salons: [],
+        bookings: [],
+        // Filters
+        filters: { query: '', minRating: 0, location: 'all' }
+      },
+
+      // ---------- Bootstrapping ----------
+      init() {
+        document.getElementById('year').textContent = new Date().getFullYear();
+        this.loadData();
+        this.restoreSession();
+        this.setupRouting();
+        this.checkAuth();
+        this.render();
+      },
+
+      setupRouting() {
+        window.addEventListener('hashchange', () => this.routeFromHash());
+        this.routeFromHash();
+      },
+
+      routeFromHash() {
+        const hash = location.hash.replace(/^#\//, '').trim();
+        if (!hash) { this.state.view = 'home'; this.state.viewParams = null; this.render(); return; }
+        const parts = hash.split('/');
+        const route = parts[0];
+        if (route === 'salon' && parts[1]) {
+          this.state.view = 'salonDetail';
+          this.state.viewParams = parseInt(parts[1]);
+        } else if (['home','login','signup','dashboard'].includes(route)) {
+          this.state.view = route;
+          this.state.viewParams = null;
+        } else {
+          this.state.view = 'home';
+          this.state.viewParams = null;
+        }
+        this.render();
+      },
+
+      navigate(viewName, params = null) {
+        this.state.view = viewName;
+        this.state.viewParams = params;
+        // update hash for deep linkability
+        let hash = '#/';
+        if (viewName === 'home') hash = '#/';
+        else if (viewName === 'salonDetail') hash = `#/salon/${params}`;
+        else hash = `#/${viewName}`;
+        if (location.hash !== hash) location.hash = hash; else this.render();
+        window.scrollTo(0, 0);
+      },
+
+      // ---------- Persistence ----------
+      loadData() {
+        const storedSalons = localStorage.getItem('sc_salons');
+        const storedBookings = localStorage.getItem('sc_bookings');
+        if (!storedSalons) this.seedData(); else this.state.salons = JSON.parse(storedSalons);
+        this.state.bookings = storedBookings ? JSON.parse(storedBookings) : [];
+      },
+
+      seedData() {
+        const initialSalons = [
+          {
+            id: 1,
+            name: 'Luxe Hair Studio',
+            ownerId: 101,
+            location: 'Downtown',
+            image: 'https://images.unsplash.com/photo-1560066984-138dadb4c035?auto=format&fit=crop&w=1200&q=80',
+            rating: 4.8,
+            reviews: [],
+            services: [
+              { id: 's1', name: 'Haircut', price: 50, duration: 60 },
+              { id: 's2', name: 'Hair Coloring', price: 120, duration: 120 },
+              { id: 's7', name: 'Keratin Treatment', price: 150, duration: 120 }
+            ]
+          },
+          {
+            id: 2,
+            name: 'Urban Barber',
+            ownerId: 102,
+            location: 'Westside',
+            image: 'https://images.unsplash.com/photo-1585747860715-2ba37e788b70?auto=format&fit=crop&w=1200&q=80',
+            rating: 4.5,
+            reviews: [],
+            services: [
+              { id: 's3', name: "Men's Cut", price: 35, duration: 45 },
+              { id: 's4', name: 'Beard Trim', price: 25, duration: 30 }
+            ]
+          },
+          {
+            id: 3,
+            name: 'Serenity Spa & Salon',
+            ownerId: 103,
+            location: 'Uptown',
+            image: 'https://images.unsplash.com/photo-1521590832169-7dad1a9feb11?auto=format&fit=crop&w=1200&q=80',
+            rating: 4.9,
+            reviews: [],
+            services: [
+              { id: 's5', name: 'Facial', price: 80, duration: 60 },
+              { id: 's6', name: 'Manicure', price: 40, duration: 45 }
+            ]
+          }
+        ];
+        localStorage.setItem('sc_salons', JSON.stringify(initialSalons));
+        this.state.salons = initialSalons;
+      },
+
+      saveData() {
+        localStorage.setItem('sc_salons', JSON.stringify(this.state.salons));
+        localStorage.setItem('sc_bookings', JSON.stringify(this.state.bookings));
+      },
+
+      restoreSession() {
+        const storedSession = localStorage.getItem('sc_session');
+        if (storedSession) this.state.currentUser = JSON.parse(storedSession);
+      },
+
+      // ---------- Auth ----------
+      checkAuth() {
+        if (this.state.currentUser) {
+          document.getElementById('nav-guest').classList.add('hidden');
+          const $user = document.getElementById('nav-user');
+          $user.classList.remove('hidden');
+          $user.classList.add('flex');
+          document.getElementById('user-greeting').textContent = `Hi, ${this.state.currentUser.name}`;
+        } else {
+          document.getElementById('nav-guest').classList.remove('hidden');
+          const $user = document.getElementById('nav-user');
+          $user.classList.add('hidden');
+          $user.classList.remove('flex');
+        }
+      },
+
+      logout() {
+        this.state.currentUser = null;
+        localStorage.removeItem('sc_session');
+        this.checkAuth();
+        this.navigate('home');
+        this.toast('Logged out successfully.', 'info');
+      },
+
+      createSession(user) {
+        const sessionUser = { ...user };
+        delete sessionUser.password;
+        this.state.currentUser = sessionUser;
+        localStorage.setItem('sc_session', JSON.stringify(sessionUser));
+        this.checkAuth();
+        this.navigate('dashboard');
+        this.toast(`Welcome ${sessionUser.name}!`, 'success');
+      },
+
+      // ---------- Views ----------
+      render() {
+        const root = document.getElementById('app-root');
+        root.innerHTML = '';
+        switch (this.state.view) {
+          case 'home':
+            root.innerHTML = this.views.home();
+            break;
+          case 'login':
+            root.innerHTML = this.views.login();
+            break;
+          case 'signup':
+            root.innerHTML = this.views.signup();
+            break;
+          case 'salonDetail':
+            root.innerHTML = this.views.salonDetail(this.state.viewParams);
+            this.enhanceBookingForm();
+            break;
+          case 'dashboard':
+            if (!this.state.currentUser) { this.navigate('login'); return; }
+            root.innerHTML = this.state.currentUser.role === 'owner' ? this.views.ownerDashboard() : this.views.customerDashboard();
+            break;
+          default:
+            root.innerHTML = this.views.home();
+        }
+      },
+
+      views: {
+        home() {
+          const uniqueLocations = ['all', ...new Set(app.state.salons.map(s => s.location))];
+          const filtered = app.filterSalons();
+          return `
+            <div class="fade-in space-y-12">
+              <!-- Hero -->
+              <div class="relative rounded-2xl overflow-hidden bg-indigo-900 text-white shadow-xl">
+                <div class="absolute inset-0 bg-black opacity-40"></div>
+                <img src="https://images.unsplash.com/photo-1562322140-8baeececf3df?auto=format&fit=crop&w=1600&q=80" class="absolute inset-0 w-full h-full object-cover mix-blend-overlay" alt="Salon background" />
+                <div class="relative z-10 px-8 py-16 md:py-24 text-center">
+                  <h1 class="text-4xl md:text-6xl font-extrabold mb-4">Find Your Perfect Style</h1>
+                  <p class="text-lg md:text-xl mb-8 text-indigo-100 max-w-2xl mx-auto">Discover top-rated salons and book appointments instantly near you.</p>
+                  <div class="max-w-3xl mx-auto bg-white rounded-lg p-3 flex flex-col md:flex-row gap-2 shadow-lg">
+                    <input id="search-input" type="text" value="${app.state.filters.query || ''}" placeholder="Search salons or services..." class="flex-grow px-4 py-3 text-gray-800 rounded-md focus:outline-none border border-gray-200" oninput="app.updateFilter('query', this.value)" />
+                    <select class="px-3 py-3 border border-gray-200 rounded-md" onchange="app.updateFilter('location', this.value)">
+                      ${uniqueLocations.map(loc => `<option value="${loc}" ${app.state.filters.location===loc?'selected':''}>${loc[0].toUpperCase()+loc.slice(1)}</option>`).join('')}
+                    </select>
+                    <select class="px-3 py-3 border border-gray-200 rounded-md" onchange="app.updateFilter('minRating', this.value)">
+                      ${[0,3,4,4.5].map(r => `<option value="${r}" ${app.state.filters.minRating==r?'selected':''}>${r===0?'Any Rating':`≥ ${r}★`}</option>`).join('')}
+                    </select>
+                    <button onclick="app.handleSearch()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-md font-bold transition">Search</button>
+                  </div>
                 </div>
-                <div class="flex items-center space-x-4">
-                    <div id="nav-guest" class="flex space-x-4">
-                        <button onclick="app.navigate('login')" class="text-gray-600 hover:text-indigo-600 font-medium px-3 py-2">Login</button>
-                        <button onclick="app.navigate('signup')" class="bg-indigo-600 text-white hover:bg-indigo-700 px-4 py-2 rounded-md font-medium transition">Sign Up</button>
-                    </div>
-                    <div id="nav-user" class="hidden flex items-center space-x-4">
-                        <span id="user-greeting" class="text-gray-700 font-medium hidden md:block"></span>
-                        <button onclick="app.navigate('dashboard')" class="text-indigo-600 hover:text-indigo-800 font-medium">Dashboard</button>
-                        <button onclick="app.logout()" class="text-red-500 hover:text-red-700 font-medium ml-2"><i class="fa-solid fa-sign-out-alt"></i></button>
-                    </div>
+              </div>
+
+              <!-- Featured -->
+              <div>
+                <div class="flex items-center justify-between mb-4">
+                  <h2 class="text-2xl font-bold text-gray-900">Featured Salons</h2>
+                  <span class="text-sm text-gray-500">${filtered.length} results</span>
                 </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8" id="salon-list">
+                  ${filtered.map(salon => app.components.salonCard(salon)).join('')}
+                </div>
+              </div>
             </div>
-        </div>
-    </nav>
+          `;
+        },
 
-    <!-- Main Content Area -->
-    <main id="app-root" class="flex-grow pt-20 pb-10 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto w-full">
-        <!-- Dynamic content will be injected here -->
-    </main>
+        login() {
+          return `
+            <div class="fade-in max-w-md mx-auto bg-white p-8 rounded-xl shadow-md mt-10">
+              <h2 class="text-2xl font-bold text-center mb-6 text-gray-800">Welcome Back</h2>
+              <form onsubmit="app.handleLogin(event)" class="space-y-4">
+                <div>
+                  <label class="block text-sm font-medium text-gray-700">Email</label>
+                  <input type="email" name="email" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500" />
+                </div>
+                <div>
+                  <label class="block text-sm font-medium text-gray-700">Password</label>
+                  <input type="password" name="password" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500" />
+                </div>
+                <button type="submit" class="w-full flex justify-center py-2 px-4 rounded-md text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700">Sign In</button>
+              </form>
+              <p class="mt-4 text-center text-sm text-gray-600">Don't have an account? <a href="#/signup" onclick="app.navigate('signup')" class="font-medium text-indigo-600 hover:text-indigo-500">Sign up</a></p>
+            </div>
+          `;
+        },
 
-    <!-- Footer -->
-    <footer class="bg-white border-t border-gray-200 mt-auto">
-        <div class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
-            <p class="text-center text-gray-500 text-sm">&copy; 2023 SalonConnect. All rights reserved.</p>
-        </div>
-    </footer>
+        signup() {
+          return `
+            <div class="fade-in max-w-md mx-auto bg-white p-8 rounded-xl shadow-md mt-10">
+              <h2 class="text-2xl font-bold text-center mb-6 text-gray-800">Create Account</h2>
+              <form onsubmit="app.handleSignup(event)" class="space-y-4">
+                <div>
+                  <label class="block text-sm font-medium text-gray-700">Full Name</label>
+                  <input type="text" name="name" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500" />
+                </div>
+                <div>
+                  <label class="block text-sm font-medium text-gray-700">Email</label>
+                  <input type="email" name="email" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500" />
+                </div>
+                <div>
+                  <label class="block text-sm font-medium text-gray-700">Password</label>
+                  <input type="password" name="password" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500" />
+                </div>
+                <div>
+                  <label class="block text-sm font-medium text-gray-700">Account Type</label>
+                  <select name="role" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
+                    <option value="customer">Customer</option>
+                    <option value="owner">Salon Owner</option>
+                  </select>
+                </div>
+                <button type="submit" class="w-full flex justify-center py-2 px-4 rounded-md text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700">Sign Up</button>
+              </form>
+              <p class="mt-4 text-center text-sm text-gray-600">Already have an account? <a href="#/login" onclick="app.navigate('login')" class="font-medium text-indigo-600 hover:text-indigo-500">Sign in</a></p>
+            </div>
+          `;
+        },
 
-    <!-- JavaScript Application Logic -->
-    <script>
-        const app = {
-            state: {
-                currentUser: null, // { id, name, email, role: 'customer' | 'owner' }
-                view: 'home',
-                salons: [],
-                bookings: []
-            },
+        salonDetail(id) {
+          const salon = app.state.salons.find(s => s.id == id);
+          if (!salon) return `<div class="text-center p-10">Salon not found</div>`;
+          const avg = salon.rating?.toFixed(1) || '5.0';
+          return `
+            <div class="fade-in bg-white rounded-xl shadow-lg overflow-hidden">
+              <div class="relative h-64 md:h-80">
+                <img src="${salon.image}" class="w-full h-full object-cover" alt="${salon.name}" />
+                <div class="absolute bottom-0 left-0 bg-gradient-to-t from-black p-6 w-full">
+                  <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
+                    <div>
+                      <h1 class="text-white text-3xl font-bold">${salon.name}</h1>
+                      <p class="text-gray-200"><i class="fa-solid fa-location-dot mr-2"></i>${salon.location}</p>
+                    </div>
+                    <div class="text-yellow-300 font-semibold"><i class="fa-solid fa-star"></i> ${avg}</div>
+                  </div>
+                </div>
+              </div>
 
-            init() {
-                this.loadData();
-                this.checkAuth();
-                this.render();
-            },
-
-            loadData() {
-                // Load Users, Salons, Bookings from LocalStorage
-                const storedUsers = localStorage.getItem('sc_users');
-                const storedSalons = localStorage.getItem('sc_salons');
-                const storedBookings = localStorage.getItem('sc_bookings');
-                const storedSession = localStorage.getItem('sc_session');
-
-                if (!storedSalons) {
-                    // Seed Initial Data if empty
-                    this.seedData();
-                } else {
-                    this.state.salons = JSON.parse(storedSalons);
-                    this.state.bookings = storedBookings ? JSON.parse(storedBookings) : [];
-                }
-
-                if (storedSession) {
-                    this.state.currentUser = JSON.parse(storedSession);
-                }
-            },
-
-            seedData() {
-                const initialSalons = [
-                    {
-                        id: 1,
-                        name: "Luxe Hair Studio",
-                        ownerId: 101,
-                        location: "Downtown",
-                        image: "https://images.unsplash.com/photo-1560066984-138dadb4c035?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80",
-                        rating: 4.8,
-                        services: [
-                            { id: 's1', name: 'Haircut', price: 50, duration: 60 },
-                            { id: 's2', name: 'Hair Coloring', price: 120, duration: 120 }
-                        ]
-                    },
-                    {
-                        id: 2,
-                        name: "Urban Barber",
-                        ownerId: 102,
-                        location: "Westside",
-                        image: "https://images.unsplash.com/photo-1585747860715-2ba37e788b70?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80",
-                        rating: 4.5,
-                        services: [
-                            { id: 's3', name: 'Men\'s Cut', price: 35, duration: 45 },
-                            { id: 's4', name: 'Beard Trim', price: 25, duration: 30 }
-                        ]
-                    },
-                    {
-                        id: 3,
-                        name: "Serenity Spa & Salon",
-                        ownerId: 103,
-                        location: "Uptown",
-                        image: "https://images.unsplash.com/photo-1521590832169-7dad1a9feb11?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80",
-                        rating: 4.9,
-                        services: [
-                            { id: 's5', name: 'Facial', price: 80, duration: 60 },
-                            { id: 's6', name: 'Manicure', price: 40, duration: 45 }
-                        ]
-                    }
-                ];
-                localStorage.setItem('sc_salons', JSON.stringify(initialSalons));
-                this.state.salons = initialSalons;
-            },
-
-            saveData() {
-                localStorage.setItem('sc_salons', JSON.stringify(this.state.salons));
-                localStorage.setItem('sc_bookings', JSON.stringify(this.state.bookings));
-                // Users are handled separately in auth
-            },
-
-            checkAuth() {
-                if (this.state.currentUser) {
-                    document.getElementById('nav-guest').classList.add('hidden');
-                    document.getElementById('nav-user').classList.remove('hidden');
-                    document.getElementById('nav-user').classList.add('flex');
-                    document.getElementById('user-greeting').textContent = `Hi, ${this.state.currentUser.name}`;
-                } else {
-                    document.getElementById('nav-guest').classList.remove('hidden');
-                    document.getElementById('nav-user').classList.add('hidden');
-                    document.getElementById('nav-user').classList.remove('flex');
-                }
-            },
-
-            navigate(viewName, params = null) {
-                this.state.view = viewName;
-                this.state.viewParams = params;
-                this.render();
-                window.scrollTo(0,0);
-            },
-
-            logout() {
-                this.state.currentUser = null;
-                localStorage.removeItem('sc_session');
-                this.checkAuth();
-                this.navigate('home');
-            },
-
-            // --- Views ---
-
-            render() {
-                const root = document.getElementById('app-root');
-                root.innerHTML = ''; // Clear content
-
-                switch (this.state.view) {
-                    case 'home':
-                        root.innerHTML = this.views.home();
-                        this.attachHomeListeners();
-                        break;
-                    case 'login':
-                        root.innerHTML = this.views.login();
-                        break;
-                    case 'signup':
-                        root.innerHTML = this.views.signup();
-                        break;
-                    case 'salonDetail':
-                        root.innerHTML = this.views.salonDetail(this.state.viewParams);
-                        break;
-                    case 'dashboard':
-                        if (!this.state.currentUser) {
-                            this.navigate('login');
-                            return;
-                        }
-                        root.innerHTML = this.state.currentUser.role === 'owner' 
-                            ? this.views.ownerDashboard() 
-                            : this.views.customerDashboard();
-                        break;
-                    default:
-                        root.innerHTML = this.views.home();
-                }
-            },
-
-            views: {
-                home() {
-                    return `
-                        <div class="fade-in space-y-12">
-                            <!-- Hero Section -->
-                            <div class="relative rounded-2xl overflow-hidden bg-indigo-900 text-white shadow-xl">
-                                <div class="absolute inset-0 bg-black opacity-40"></div>
-                                <img src="https://images.unsplash.com/photo-1562322140-8baeececf3df?ixlib=rb-4.0.3&auto=format&fit=crop&w=1600&q=80" class="absolute inset-0 w-full h-full object-cover mix-blend-overlay" alt="Salon background">
-                                <div class="relative z-10 px-8 py-20 md:py-32 text-center">
-                                    <h1 class="text-4xl md:text-6xl font-extrabold mb-6">Find Your Perfect Style</h1>
-                                    <p class="text-lg md:text-xl mb-8 text-indigo-100 max-w-2xl mx-auto">Discover top-rated salons and book appointments instantly near you.</p>
-                                    <div class="max-w-2xl mx-auto bg-white rounded-lg p-2 flex flex-col md:flex-row gap-2 shadow-lg">
-                                        <input id="search-input" type="text" placeholder="Search salons or services..." class="flex-grow px-4 py-3 text-gray-800 rounded-md focus:outline-none">
-                                        <button onclick="app.handleSearch()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-8 py-3 rounded-md font-bold transition">Search</button>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Featured Salons -->
-                            <div>
-                                <h2 class="text-2xl font-bold text-gray-900 mb-6">Featured Salons</h2>
-                                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8" id="salon-list">
-                                    ${app.state.salons.map(salon => app.components.salonCard(salon)).join('')}
-                                </div>
-                            </div>
+              <div class="p-6 md:p-8 flex flex-col md:flex-row gap-8">
+                <div class="md:w-2/3 space-y-6">
+                  <section>
+                    <h2 class="text-xl font-bold text-gray-900 mb-4">Services Menu</h2>
+                    <div class="space-y-3">
+                      ${salon.services.map(service => `
+                        <div class="flex justify-between items-center p-4 border border-gray-100 rounded-lg hover:bg-gray-50 transition">
+                          <div>
+                            <h3 class="font-medium text-gray-900">${service.name}</h3>
+                            <p class="text-sm text-gray-500">${service.duration} mins</p>
+                          </div>
+                          <div class="flex items-center gap-4">
+                            <span class="font-bold text-indigo-600">$${service.price}</span>
+                            <button onclick="app.handleServiceSelect('${service.id}', '${service.name.replace(/'/g, "\'")}', ${service.price})" class="px-4 py-1 bg-gray-100 text-gray-700 text-sm rounded hover:bg-indigo-100 hover:text-indigo-700">Select</button>
+                          </div>
                         </div>
-                    `;
-                },
+                      `).join('')}
+                    </div>
+                  </section>
 
-                login() {
-                    return `
-                        <div class="fade-in max-w-md mx-auto bg-white p-8 rounded-xl shadow-md mt-10">
-                            <h2 class="text-2xl font-bold text-center mb-6 text-gray-800">Welcome Back</h2>
-                            <form onsubmit="app.handleLogin(event)" class="space-y-4">
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700">Email</label>
-                                    <input type="email" name="email" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
-                                </div>
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700">Password</label>
-                                    <input type="password" name="password" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
-                                </div>
-                                <button type="submit" class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">Sign In</button>
-                            </form>
-                            <p class="mt-4 text-center text-sm text-gray-600">
-                                Don't have an account? <a href="#" onclick="app.navigate('signup')" class="font-medium text-indigo-600 hover:text-indigo-500">Sign up</a>
-                            </p>
+                  <section>
+                    <h2 class="text-xl font-bold text-gray-900 mb-4">Recent Reviews</h2>
+                    <div class="space-y-3">
+                      ${(salon.reviews && salon.reviews.length) ? salon.reviews.slice(-5).reverse().map(r => `
+                        <div class="p-4 border border-gray-100 rounded-lg">
+                          <div class="flex items-center justify-between">
+                            <div class="font-medium text-gray-800">${r.name || 'Customer'}</div>
+                            <div class="text-yellow-500">${'★'.repeat(r.rating)}${'☆'.repeat(5-r.rating)}</div>
+                          </div>
+                          <p class="text-sm text-gray-600 mt-1">${r.comment || ''}</p>
+                          <p class="text-xs text-gray-400 mt-1">${new Date(r.date).toLocaleString()}</p>
                         </div>
-                    `;
-                },
+                      `).join('') : `<div class="text-gray-500 text-sm">No reviews yet.</div>`}
+                    </div>
+                  </section>
+                </div>
 
-                signup() {
-                    return `
-                        <div class="fade-in max-w-md mx-auto bg-white p-8 rounded-xl shadow-md mt-10">
-                            <h2 class="text-2xl font-bold text-center mb-6 text-gray-800">Create Account</h2>
-                            <form onsubmit="app.handleSignup(event)" class="space-y-4">
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700">Full Name</label>
-                                    <input type="text" name="name" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
-                                </div>
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700">Email</label>
-                                    <input type="email" name="email" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
-                                </div>
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700">Password</label>
-                                    <input type="password" name="password" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
-                                </div>
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700">Account Type</label>
-                                    <select name="role" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
-                                        <option value="customer">Customer</option>
-                                        <option value="owner">Salon Owner</option>
-                                    </select>
-                                </div>
-                                <button type="submit" class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">Sign Up</button>
-                            </form>
-                            <p class="mt-4 text-center text-sm text-gray-600">
-                                Already have an account? <a href="#" onclick="app.navigate('login')" class="font-medium text-indigo-600 hover:text-indigo-500">Sign in</a>
-                            </p>
-                        </div>
-                    `;
-                },
+                <div class="md:w-1/3">
+                  <div class="bg-gray-50 p-6 rounded-xl border border-gray-200 sticky top-24">
+                    <h3 class="text-lg font-bold text-gray-900 mb-4">Book Appointment</h3>
+                    <form onsubmit="app.handleBookingSubmit(event, ${salon.id})" id="booking-form">
+                      <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Service</label>
+                        <input type="text" id="selected-service-name" disabled value="Select a service" class="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100 text-gray-500" />
+                        <input type="hidden" name="serviceId" id="selected-service-id" required />
+                        <input type="hidden" name="servicePrice" id="selected-service-price" />
+                      </div>
+                      <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Date</label>
+                        <input type="date" id="booking-date" name="date" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500" />
+                      </div>
+                      <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Time</label>
+                        <select name="time" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500">
+                          <option value="">Select Time</option>
+                          <option value="09:00">09:00 AM</option>
+                          <option value="10:00">10:00 AM</option>
+                          <option value="11:00">11:00 AM</option>
+                          <option value="12:00">12:00 PM</option>
+                          <option value="13:00">01:00 PM</option>
+                          <option value="14:00">02:00 PM</option>
+                          <option value="15:00">03:00 PM</option>
+                          <option value="16:00">04:00 PM</option>
+                          <option value="17:00">05:00 PM</option>
+                        </select>
+                      </div>
+                      <button type="submit" class="w-full py-3 px-4 bg-indigo-600 text-white font-bold rounded-md hover:bg-indigo-700 transition shadow-md">Confirm Booking</button>
+                    </form>
+                    <p class="text-xs text-gray-500 mt-4 text-center">Login required to book.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          `;
+        },
 
-                salonDetail(id) {
-                    const salon = app.state.salons.find(s => s.id == id);
-                    if (!salon) return `<div class="text-center p-10">Salon not found</div>`;
+        customerDashboard() {
+          const myBookings = app.state.bookings.filter(b => b.customerId === app.state.currentUser.email).sort((a,b)=> (b.date+a.time).localeCompare(a.date+b.time));
+          return `
+            <div class="fade-in space-y-8">
+              <div class="flex items-center justify-between">
+                <h1 class="text-3xl font-bold text-gray-900">My Dashboard</h1>
+                <div class="bg-indigo-100 text-indigo-800 px-4 py-2 rounded-full text-sm font-medium">Customer Account</div>
+              </div>
 
-                    return `
-                        <div class="fade-in bg-white rounded-xl shadow-lg overflow-hidden">
-                            <div class="relative h-64 md:h-80">
-                                <img src="${salon.image}" class="w-full h-full object-cover" alt="${salon.name}">
-                                <div class="absolute bottom-0 left-0 bg-gradient-to-t from-black p-6 w-full">
-                                    <h1 class="text-white text-3xl font-bold">${salon.name}</h1>
-                                    <p class="text-gray-200"><i class="fa-solid fa-location-dot mr-2"></i>${salon.location}</p>
-                                </div>
-                            </div>
-                            
-                            <div class="p-6 md:p-8 flex flex-col md:flex-row gap-8">
-                                <div class="md:w-2/3 space-y-6">
-                                    <section>
-                                        <h2 class="text-xl font-bold text-gray-900 mb-4">Services Menu</h2>
-                                        <div class="space-y-3">
-                                            ${salon.services.map(service => `
-                                                <div class="flex justify-between items-center p-4 border border-gray-100 rounded-lg hover:bg-gray-50 transition">
-                                                    <div>
-                                                        <h3 class="font-medium text-gray-900">${service.name}</h3>
-                                                        <p class="text-sm text-gray-500">${service.duration} mins</p>
-                                                    </div>
-                                                    <div class="flex items-center gap-4">
-                                                        <span class="font-bold text-indigo-600">$${service.price}</span>
-                                                        <button onclick="app.handleServiceSelect('${service.id}', '${service.name}', ${service.price})" 
-                                                            class="px-4 py-1 bg-gray-100 text-gray-700 text-sm rounded hover:bg-indigo-100 hover:text-indigo-700">
-                                                            Select
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                            `).join('')}
-                                        </div>
-                                    </section>
-                                </div>
+              <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                  <div class="text-gray-500 text-sm">Total Bookings</div>
+                  <div class="text-3xl font-bold text-gray-900 mt-1">${myBookings.length}</div>
+                </div>
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                  <div class="text-gray-500 text-sm">Next Appointment</div>
+                  <div class="text-xl font-bold text-gray-900 mt-1">${myBookings.length ? (myBookings[0].date + ' ' + myBookings[0].time) : 'None'}</div>
+                </div>
+              </div>
 
-                                <div class="md:w-1/3">
-                                    <div class="bg-gray-50 p-6 rounded-xl border border-gray-200 sticky top-24">
-                                        <h3 class="text-lg font-bold text-gray-900 mb-4">Book Appointment</h3>
-                                        <form onsubmit="app.handleBookingSubmit(event, ${salon.id})" id="booking-form">
-                                            <div class="mb-4">
-                                                <label class="block text-sm font-medium text-gray-700 mb-1">Service</label>
-                                                <input type="text" id="selected-service-name" disabled value="Select a service" class="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100 text-gray-500">
-                                                <input type="hidden" name="serviceId" id="selected-service-id" required>
-                                                <input type="hidden" name="servicePrice" id="selected-service-price">
-                                            </div>
-                                            <div class="mb-4">
-                                                <label class="block text-sm font-medium text-gray-700 mb-1">Date</label>
-                                                <input type="date" name="date" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500">
-                                            </div>
-                                            <div class="mb-4">
-                                                <label class="block text-sm font-medium text-gray-700 mb-1">Time</label>
-                                                <select name="time" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500">
-                                                    <option value="">Select Time</option>
-                                                    <option value="09:00">09:00 AM</option>
-                                                    <option value="10:00">10:00 AM</option>
-                                                    <option value="11:00">11:00 AM</option>
-                                                    <option value="12:00">12:00 PM</option>
-                                                    <option value="13:00">01:00 PM</option>
-                                                    <option value="14:00">02:00 PM</option>
-                                                    <option value="15:00">03:00 PM</option>
-                                                    <option value="16:00">04:00 PM</option>
-                                                    <option value="17:00">05:00 PM</option>
-                                                </select>
-                                            </div>
-                                            <button type="submit" class="w-full py-3 px-4 bg-indigo-600 text-white font-bold rounded-md hover:bg-indigo-700 transition shadow-md">
-                                                Confirm Booking
-                                            </button>
-                                        </form>
-                                        <p class="text-xs text-gray-500 mt-4 text-center">Login required to book.</p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    `;
-                },
+              <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+                  <h2 class="text-lg font-semibold text-gray-800">Appointments</h2>
+                </div>
+                <div class="overflow-x-auto">
+                  <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                      <tr>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Salon</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Service</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date & Time</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Price</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
+                      </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                      ${myBookings.length ? myBookings.map(b => `
+                        <tr>
+                          <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${b.salonName}</td>
+                          <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${b.serviceName}</td>
+                          <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${b.date} at ${b.time}</td>
+                          <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">$${b.price}</td>
+                          <td class="px-6 py-4 whitespace-nowrap text-sm">
+                            ${b.reviewed ? '<span class="text-green-600 font-medium">Reviewed</span>' : `<button class="text-indigo-600 hover:text-indigo-800" onclick="app.openReview('${b.id}')">Review</button>`}
+                          </td>
+                        </tr>
+                      `).join('') : `<tr><td colspan="5" class="px-6 py-8 text-center text-gray-500">No bookings found. <button onclick="app.navigate('home')" class="text-indigo-600 hover:underline">Book now</button></td></tr>`}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          `;
+        },
 
-                customerDashboard() {
-                    const myBookings = app.state.bookings.filter(b => b.customerId === app.state.currentUser.email).reverse();
-                    
-                    return `
-                        <div class="fade-in space-y-8">
-                            <div class="flex items-center justify-between">
-                                <h1 class="text-3xl font-bold text-gray-900">My Dashboard</h1>
-                                <div class="bg-indigo-100 text-indigo-800 px-4 py-2 rounded-full text-sm font-medium">Customer Account</div>
-                            </div>
+        ownerDashboard() {
+          const user = app.state.currentUser;
+          const mySalon = app.state.salons.find(s => s.ownerId === user.id);
+          if (!mySalon) {
+            return `
+              <div class="fade-in max-w-2xl mx-auto bg-white p-8 rounded-xl shadow-md mt-10">
+                <h2 class="text-2xl font-bold text-center mb-2 text-gray-800">Register Your Salon</h2>
+                <p class="text-center text-gray-600 mb-6">You haven't listed a salon yet. Provide details below to get started.</p>
+                <form onsubmit="app.handleSalonCreate(event)" class="space-y-4">
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700">Salon Name</label>
+                    <input type="text" name="name" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500" />
+                  </div>
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700">Location (City/Area)</label>
+                    <input type="text" name="location" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500" />
+                  </div>
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700">Image URL (Optional)</label>
+                    <input type="url" name="image" placeholder="https://..." class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500" />
+                  </div>
+                  <button type="submit" class="w-full py-2 px-4 rounded-md text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700">Create Salon Profile</button>
+                </form>
+              </div>
+            `;
+          }
 
-                            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                                <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-                                    <div class="text-gray-500 text-sm">Total Bookings</div>
-                                    <div class="text-3xl font-bold text-gray-900 mt-1">${myBookings.length}</div>
-                                </div>
-                                <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-                                    <div class="text-gray-500 text-sm">Next Appointment</div>
-                                    <div class="text-xl font-bold text-gray-900 mt-1">${myBookings.length > 0 ? myBookings[0].date : 'None'}</div>
-                                </div>
-                            </div>
+          const appointments = app.state.bookings.filter(b => b.salonId === mySalon.id).sort((a,b)=> (b.date+a.time).localeCompare(a.date+b.time));
+          const revenue = appointments.reduce((sum,b)=> sum + (parseFloat(b.price)||0), 0);
 
-                            <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-                                <div class="px-6 py-4 border-b border-gray-200">
-                                    <h2 class="text-lg font-semibold text-gray-800">Appointment History</h2>
-                                </div>
-                                <div class="overflow-x-auto">
-                                    <table class="min-w-full divide-y divide-gray-200">
-                                        <thead class="bg-gray-50">
-                                            <tr>
-                                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Salon</th>
-                                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Service</th>
-                                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date & Time</th>
-                                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Price</th>
-                                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody class="bg-white divide-y divide-gray-200">
-                                            ${myBookings.length ? myBookings.map(b => `
-                                                <tr>
-                                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${b.salonName}</td>
-                                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${b.serviceName}</td>
-                                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${b.date} at ${b.time}</td>
-                                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">$${b.price}</td>
-                                                    <td class="px-6 py-4 whitespace-nowrap">
-                                                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">Confirmed</span>
-                                                    </td>
-                                                </tr>
-                                            `).join('') : `<tr><td colspan="5" class="px-6 py-8 text-center text-gray-500">No bookings found. <button onclick="app.navigate('home')" class="text-indigo-600 hover:underline">Book now</button></td></tr>`}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-                        </div>
-                    `;
-                },
+          return `
+            <div class="fade-in space-y-8">
+              <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+                <div>
+                  <h1 class="text-3xl font-bold text-gray-900">Owner Dashboard</h1>
+                  <p class="text-gray-500">Managing: ${mySalon.name}</p>
+                </div>
+                <div class="flex gap-2">
+                  <button onclick="app.openEditSalon(${mySalon.id})" class="bg-indigo-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-indigo-700"><i class="fa-solid fa-pen-to-square mr-2"></i>Edit Salon</button>
+                  <button onclick="app.openManageServices(${mySalon.id})" class="bg-gray-800 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-black"><i class="fa-solid fa-list mr-2"></i>Manage Services</button>
+                </div>
+              </div>
 
-                ownerDashboard() {
-                    const mySalon = app.state.salons.find(s => s.ownerId === app.state.currentUser.id);
-                    
-                    if (!mySalon) {
-                        return `
-                            <div class="fade-in max-w-2xl mx-auto bg-white p-8 rounded-xl shadow-md mt-10">
-                                <h2 class="text-2xl font-bold text-center mb-6 text-gray-800">Register Your Salon</h2>
-                                <p class="text-center text-gray-600 mb-8">You haven't listed a salon yet. Provide details below to get started.</p>
-                                <form onsubmit="app.handleSalonCreate(event)" class="space-y-4">
-                                    <div>
-                                        <label class="block text-sm font-medium text-gray-700">Salon Name</label>
-                                        <input type="text" name="name" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
-                                    </div>
-                                    <div>
-                                        <label class="block text-sm font-medium text-gray-700">Location (City/Area)</label>
-                                        <input type="text" name="location" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
-                                    </div>
-                                    <div>
-                                        <label class="block text-sm font-medium text-gray-700">Image URL (Optional)</label>
-                                        <input type="url" name="image" placeholder="https://..." class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
-                                    </div>
-                                    <button type="submit" class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">Create Salon Profile</button>
-                                </form>
-                            </div>
-                        `;
-                    }
+              <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                  <div class="text-gray-500 text-sm">Total Appointments</div>
+                  <div class="text-3xl font-bold text-gray-900 mt-1">${appointments.length}</div>
+                </div>
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                  <div class="text-gray-500 text-sm">Revenue (Est.)</div>
+                  <div class="text-3xl font-bold text-gray-900 mt-1">$${revenue.toFixed(2)}</div>
+                </div>
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                  <div class="text-gray-500 text-sm">Avg Rating</div>
+                  <div class="text-3xl font-bold text-gray-900 mt-1">${(mySalon.rating||5).toFixed(1)} ★</div>
+                </div>
+              </div>
 
-                    const appointments = app.state.bookings.filter(b => b.salonId === mySalon.id).reverse();
+              <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
+                  <h2 class="text-lg font-semibold text-gray-800">Upcoming Appointments</h2>
+                </div>
+                <div class="overflow-x-auto">
+                  <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                      <tr>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Customer</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Service</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date & Time</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Price</th>
+                      </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                      ${appointments.length ? appointments.map(b => `
+                        <tr>
+                          <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${b.customerName || 'Customer'}</td>
+                          <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${b.serviceName}</td>
+                          <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${b.date} at ${b.time}</td>
+                          <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">$${b.price}</td>
+                        </tr>
+                      `).join('') : `<tr><td colspan="4" class="px-6 py-8 text-center text-gray-500">No appointments yet.</td></tr>`}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          `;
+        }
+      },
 
-                    return `
-                         <div class="fade-in space-y-8">
-                            <div class="flex items-center justify-between">
-                                <div>
-                                    <h1 class="text-3xl font-bold text-gray-900">Owner Dashboard</h1>
-                                    <p class="text-gray-500">Managing: ${mySalon.name}</p>
-                                </div>
-                                <button class="bg-indigo-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-indigo-700">Edit Salon Details</button>
-                            </div>
+      components: {
+        salonCard(salon) {
+          return `
+            <div onclick="app.navigate('salonDetail', ${salon.id})" class="bg-white rounded-xl shadow-sm hover:shadow-md transition cursor-pointer overflow-hidden border border-gray-100 flex flex-col h-full">
+              <div class="h-48 overflow-hidden relative">
+                <img src="${salon.image}" alt="${salon.name}" class="w-full h-full object-cover hover:scale-105 transition duration-500" />
+                <div class="absolute top-3 right-3 bg-white px-2 py-1 rounded-md shadow text-xs font-bold text-indigo-600 flex items-center">
+                  <i class="fa-solid fa-star text-yellow-400 mr-1"></i> ${(salon.rating||5).toFixed(1)}
+                </div>
+              </div>
+              <div class="p-5 flex flex-col flex-grow">
+                <h3 class="text-xl font-bold text-gray-900 mb-1">${salon.name}</h3>
+                <p class="text-gray-500 text-sm mb-4 flex items-center"><i class="fa-solid fa-location-dot mr-2 text-indigo-400"></i>${salon.location}</p>
+                <div class="flex flex-wrap gap-2 mt-auto">
+                  ${salon.services.slice(0, 2).map(s => `<span class=\"bg-gray-100 text-gray-600 text-xs px-2 py-1 rounded\">${s.name}</span>`).join('')}
+                  ${salon.services.length > 2 ? `<span class=\"bg-gray-100 text-gray-600 text-xs px-2 py-1 rounded\">+${salon.services.length - 2} more</span>` : ''}
+                </div>
+              </div>
+            </div>
+          `;
+        }
+      },
 
-                            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                                <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-                                    <div class="text-gray-500 text-sm">Total Appointments</div>
-                                    <div class="text-3xl font-bold text-gray-900 mt-1">${appointments.length}</div>
-                                </div>
-                                <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-                                    <div class="text-gray-500 text-sm">Revenue (Est.)</div>
-                                    <div class="text-3xl font-bold text-gray-900 mt-1">${appointments.reduce((sum, b) => sum + b.price, 0)}</div>
-                                </div>
-                            </div>
+      // ---------- Filters & Search ----------
+      updateFilter(key, value) {
+        if (key === 'minRating') value = parseFloat(value) || 0;
+        this.state.filters[key] = value;
+      },
 
-                            <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-                                <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
-                                    <h2 class="text-lg font-semibold text-gray-800">Upcoming Appointments</h2>
-                                </div>
-                                <div class="overflow-x-auto">
-                                    <table class="min-w-full divide-y divide-gray-200">
-                                        <thead class="bg-gray-50">
-                                            <tr>
-                                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Customer</th>
-                                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Service</th>
-                                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date & Time</th>
-                                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Price</th>
-                                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody class="bg-white divide-y divide-gray-200">
-                                            ${appointments.length ? appointments.map(b => `
-                                                <tr>
-                                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${b.customerName || 'Guest'}</td>
-                                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${b.serviceName}</td>
-                                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${b.date} at ${b.time}</td>
-                                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${b.price}</td>
-                                                    <td class="px-6 py-4 whitespace-nowrap">
-                                                        <button class="text-red-600 hover:text-red-900 text-sm font-medium">Cancel</button>
-                                                    </td>
-                                                </tr>
-                                            `).join('') : `<tr><td colspan="5" class="px-6 py-8 text-center text-gray-500">No appointments yet.</td></tr>`}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-                        </div>
-                    `;
-                }
-            },
-
-            components: {
-                salonCard(salon) {
-                    return `
-                        <div onclick="app.navigate('salonDetail', ${salon.id})" class="bg-white rounded-xl shadow-sm hover:shadow-md transition cursor-pointer overflow-hidden border border-gray-100 flex flex-col h-full">
-                            <div class="h-48 overflow-hidden relative">
-                                <img src="${salon.image}" alt="${salon.name}" class="w-full h-full object-cover hover:scale-105 transition duration-500">
-                                <div class="absolute top-3 right-3 bg-white px-2 py-1 rounded-md shadow text-xs font-bold text-indigo-600 flex items-center">
-                                    <i class="fa-solid fa-star text-yellow-400 mr-1"></i> ${salon.rating}
-                                </div>
-                            </div>
-                            <div class="p-5 flex flex-col flex-grow">
-                                <h3 class="text-xl font-bold text-gray-900 mb-1">${salon.name}</h3>
-                                <p class="text-gray-500 text-sm mb-4 flex items-center"><i class="fa-solid fa-location-dot mr-2 text-indigo-400"></i> ${salon.location}</p>
-                                <div class="flex flex-wrap gap-2 mt-auto">
-                                    ${salon.services.slice(0, 2).map(s => `<span class="bg-gray-100 text-gray-600 text-xs px-2 py-1 rounded">${s.name}</span>`).join('')}
-                                    ${salon.services.length > 2 ? `<span class="bg-gray-100 text-gray-600 text-xs px-2 py-1 rounded">+${salon.services.length - 2} more</span>` : ''}
-                                </div>
-                            </div>
-                        </div>
-                    `;
-                }
-            },
-
-            // --- Handlers ---
-            
-            attachHomeListeners() {
-                // Add listeners for home page elements if needed after render
-            },
-
-            handleSearch() {
-                const query = document.getElementById('search-input').value.toLowerCase();
-                const filtered = this.state.salons.filter(s => 
-                    s.name.toLowerCase().includes(query) || 
-                    s.location.toLowerCase().includes(query) ||
-                    s.services.some(srv => srv.name.toLowerCase().includes(query))
-                );
-                
-                const container = document.getElementById('salon-list');
-                if(filtered.length === 0) {
-                    container.innerHTML = `<div class="col-span-3 text-center py-10 text-gray-500">No salons found matching "${query}"</div>`;
-                } else {
-                    container.innerHTML = filtered.map(s => this.components.salonCard(s)).join('');
-                }
-            },
-
-            handleLogin(e) {
-                e.preventDefault();
-                const formData = new FormData(e.target);
-                const email = formData.get('email');
-                const password = formData.get('password');
-
-                // Fetch users from local storage
-                const users = JSON.parse(localStorage.getItem('sc_users') || '[]');
-                const user = users.find(u => u.email === email && u.password === password);
-
-                if (user) {
-                    this.createSession(user);
-                } else {
-                    alert('Invalid credentials. Please try again or sign up.'); // Basic alert for simplicity
-                }
-            },
-
-            handleSignup(e) {
-                e.preventDefault();
-                const formData = new FormData(e.target);
-                const newUser = Object.fromEntries(formData.entries());
-
-                const users = JSON.parse(localStorage.getItem('sc_users') || '[]');
-                if (users.find(u => u.email === newUser.email)) {
-                    alert('Email already exists.');
-                    return;
-                }
-
-                newUser.id = Date.now(); // Assign unique ID
-                users.push(newUser);
-                localStorage.setItem('sc_users', JSON.stringify(users));
-                
-                this.createSession(newUser);
-            },
-
-            handleSalonCreate(e) {
-                e.preventDefault();
-                const formData = new FormData(e.target);
-                const salonData = Object.fromEntries(formData.entries());
-                
-                const newSalon = {
-                    id: Date.now(),
-                    ownerId: this.state.currentUser.id,
-                    name: salonData.name,
-                    location: salonData.location,
-                    image: salonData.image || "https://images.unsplash.com/photo-1521590832169-7dad1a9feb11?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80",
-                    rating: 5.0, // New salons start with 5 stars
-                    services: [
-                        // Default starter services
-                        { id: 's_def_1', name: 'Standard Haircut', price: 40, duration: 45 },
-                        { id: 's_def_2', name: 'Shampoo & Blow Dry', price: 30, duration: 30 }
-                    ]
-                };
-
-                this.state.salons.push(newSalon);
-                this.saveData();
-                this.navigate('dashboard');
-            },
-
-            createSession(user) {
-                // Remove password before saving to session
-                const sessionUser = { ...user };
-                delete sessionUser.password;
-                
-                this.state.currentUser = sessionUser;
-                localStorage.setItem('sc_session', JSON.stringify(sessionUser));
-                
-                this.checkAuth();
-                this.navigate('dashboard');
-            },
-
-            handleServiceSelect(id, name, price) {
-                if (!this.state.currentUser) {
-                    alert('Please login to book an appointment.');
-                    this.navigate('login');
-                    return;
-                }
-                
-                document.getElementById('selected-service-name').value = name;
-                document.getElementById('selected-service-id').value = id;
-                document.getElementById('selected-service-price').value = price;
-                
-                // Visual feedback
-                document.getElementById('booking-form').scrollIntoView({ behavior: 'smooth' });
-            },
-
-            handleBookingSubmit(e, salonId) {
-                e.preventDefault();
-                if (!this.state.currentUser) {
-                    this.navigate('login');
-                    return;
-                }
-
-                const serviceId = document.getElementById('selected-service-id').value;
-                if (!serviceId) {
-                    alert('Please select a service first.');
-                    return;
-                }
-
-                const formData = new FormData(e.target);
-                const bookingData = {
-                    id: Date.now(),
-                    salonId: salonId,
-                    salonName: this.state.salons.find(s => s.id === salonId).name,
-                    customerId: this.state.currentUser.email,
-                    customerName: this.state.currentUser.name,
-                    serviceId: serviceId,
-                    serviceName: document.getElementById('selected-service-name').value,
-                    price: parseFloat(document.getElementById('selected-service-price').value),
-                    date: formData.get('date'),
-                    time: formData.get('time'),
-                    status: 'confirmed'
-                };
-
-                this.state.bookings.push(bookingData);
-                this.saveData();
-                
-                alert('Booking Confirmed!');
-                this.navigate('dashboard');
-            }
-        };
-
-        // Start the app
-        document.addEventListener('DOMContentLoaded', () => {
-            app.init();
+      filterSalons() {
+        const { query, minRating, location } = this.state.filters;
+        const q = (query || '').toLowerCase();
+        return this.state.salons.filter(s => {
+          const matchesQuery = !q || s.name.toLowerCase().includes(q) || s.location.toLowerCase().includes(q) || s.services.some(srv => srv.name.toLowerCase().includes(q));
+          const matchesRating = (s.rating || 0) >= (minRating || 0);
+          const matchesLoc = location === 'all' || s.location === location;
+          return matchesQuery && matchesRating && matchesLoc;
         });
+      },
 
-    </script>
+      handleSearch() {
+        const container = document.getElementById('salon-list');
+        const filtered = this.filterSalons();
+        if (!container) return;
+        container.innerHTML = filtered.length ? filtered.map(s => this.components.salonCard(s)).join('') : `<div class="col-span-3 text-center py-10 text-gray-500">No salons found</div>`;
+      },
+
+      // ---------- Booking ----------
+      enhanceBookingForm() {
+        const dateInput = document.getElementById('booking-date');
+        if (dateInput) {
+          const today = new Date();
+          const yyyy = today.getFullYear();
+          const mm = String(today.getMonth()+1).padStart(2,'0');
+          const dd = String(today.getDate()).padStart(2,'0');
+          dateInput.min = `${yyyy}-${mm}-${dd}`;
+        }
+      },
+
+      handleServiceSelect(id, name, price) {
+        if (!this.state.currentUser) { this.toast('Please login to book an appointment.', 'warning'); this.navigate('login'); return; }
+        const nameEl = document.getElementById('selected-service-name');
+        const idEl = document.getElementById('selected-service-id');
+        const priceEl = document.getElementById('selected-service-price');
+        if (nameEl && idEl) {
+          nameEl.value = name;
+          idEl.value = id;
+          priceEl.value = price;
+          document.getElementById('booking-form')?.scrollIntoView({ behavior: 'smooth' });
+        }
+      },
+
+      handleBookingSubmit(e, salonId) {
+        e.preventDefault();
+        if (!this.state.currentUser) { this.navigate('login'); return; }
+        const formData = new FormData(e.target);
+        const serviceId = document.getElementById('selected-service-id').value;
+        if (!serviceId) { this.toast('Please select a service first.', 'warning'); return; }
+        const date = formData.get('date');
+        const time = formData.get('time');
+        if (this.state.bookings.some(b => b.salonId === salonId && b.date === date && b.time === time)) {
+          this.toast('That time slot is not available. Please choose another.', 'error');
+          return;
+        }
+        const salon = this.state.salons.find(s => s.id === salonId);
+        const bookingData = {
+          id: Date.now().toString(),
+          salonId,
+          salonName: salon?.name || 'Salon',
+          customerId: this.state.currentUser.email,
+          customerName: this.state.currentUser.name,
+          serviceId,
+          serviceName: document.getElementById('selected-service-name').value,
+          price: parseFloat(document.getElementById('selected-service-price').value) || 0,
+          date,
+          time,
+          status: 'confirmed',
+          reviewed: false
+        };
+        this.state.bookings.push(bookingData);
+        this.saveData();
+        this.toast('Booking Confirmed!', 'success');
+        this.navigate('dashboard');
+      },
+
+      // ---------- Owner: Create/Edit Salon & Services ----------
+      handleSalonCreate(e) {
+        e.preventDefault();
+        const formData = new FormData(e.target);
+        const salonData = Object.fromEntries(formData.entries());
+        const newSalon = {
+          id: Date.now(),
+          ownerId: this.state.currentUser.id,
+          name: salonData.name,
+          location: salonData.location,
+          image: salonData.image || 'https://images.unsplash.com/photo-1521590832169-7dad1a9feb11?auto=format&fit=crop&w=1200&q=80',
+          rating: 5.0,
+          reviews: [],
+          services: [
+            { id: 's_def_1', name: 'Standard Haircut', price: 40, duration: 45 },
+            { id: 's_def_2', name: 'Shampoo & Blow Dry', price: 30, duration: 30 }
+          ]
+        };
+        this.state.salons.push(newSalon);
+        this.saveData();
+        this.toast('Salon profile created!', 'success');
+        this.navigate('dashboard');
+      },
+
+      openEditSalon(salonId) {
+        const salon = this.state.salons.find(s => s.id === salonId);
+        if (!salon) return;
+        const modal = this.modal(`
+          <h3 class="text-lg font-semibold mb-3">Edit Salon Details</h3>
+          <form id="edit-salon-form" class="space-y-3">
+            <div>
+              <label class="block text-sm text-gray-700">Name</label>
+              <input name="name" value="${salon.name}" class="w-full border px-3 py-2 rounded-md" />
+            </div>
+            <div>
+              <label class="block text-sm text-gray-700">Location</label>
+              <input name="location" value="${salon.location}" class="w-full border px-3 py-2 rounded-md" />
+            </div>
+            <div>
+              <label class="block text-sm text-gray-700">Image URL</label>
+              <input name="image" value="${salon.image}" class="w-full border px-3 py-2 rounded-md" />
+            </div>
+            <div class="flex justify-end gap-2 pt-2">
+              <button type="button" class="px-4 py-2 rounded-md bg-gray-100" onclick="app.closeModal()">Cancel</button>
+              <button type="submit" class="px-4 py-2 rounded-md bg-indigo-600 text-white">Save</button>
+            </div>
+          </form>
+        `);
+        document.body.appendChild(modal);
+        modal.querySelector('#edit-salon-form').addEventListener('submit', (e) => {
+          e.preventDefault();
+          const fd = new FormData(e.target);
+          salon.name = fd.get('name');
+          salon.location = fd.get('location');
+          salon.image = fd.get('image');
+          this.saveData();
+          this.toast('Salon updated.', 'success');
+          this.closeModal();
+          this.render();
+        });
+      },
+
+      openManageServices(salonId) {
+        const salon = this.state.salons.find(s => s.id === salonId);
+        if (!salon) return;
+        const modal = this.modal(`
+          <h3 class="text-lg font-semibold mb-3">Manage Services</h3>
+          <div id="services-list" class="space-y-3 max-h-[50vh] overflow-auto pr-1">
+            ${salon.services.map(s => `
+              <div class="border rounded-lg p-3 flex flex-col md:flex-row md:items-center md:gap-3">
+                <input data-field="name" data-id="${s.id}" value="${s.name}" class="border px-2 py-1 rounded w-full md:w-1/3 mb-2 md:mb-0" />
+                <input data-field="price" data-id="${s.id}" type="number" min="0" step="1" value="${s.price}" class="border px-2 py-1 rounded w-full md:w-24 mb-2 md:mb-0" />
+                <input data-field="duration" data-id="${s.id}" type="number" min="10" step="5" value="${s.duration}" class="border px-2 py-1 rounded w-full md:w-28 mb-2 md:mb-0" />
+                <button data-action="delete" data-id="${s.id}" class="text-red-600 hover:text-red-800 ml-auto"><i class="fa-solid fa-trash"></i></button>
+              </div>
+            `).join('')}
+          </div>
+          <div class="mt-4 p-3 bg-gray-50 rounded-lg border">
+            <h4 class="font-medium text-gray-800 mb-2">Add New Service</h4>
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-2">
+              <input id="new-s-name" placeholder="Name" class="border px-3 py-2 rounded" />
+              <input id="new-s-price" type="number" min="0" step="1" placeholder="Price" class="border px-3 py-2 rounded" />
+              <input id="new-s-dur" type="number" min="10" step="5" placeholder="Duration (mins)" class="border px-3 py-2 rounded" />
+              <button id="add-service" class="bg-indigo-600 text-white rounded px-4 py-2 hover:bg-indigo-700">Add</button>
+            </div>
+          </div>
+          <div class="flex justify-end gap-2 pt-3">
+            <button class="px-4 py-2 rounded-md bg-gray-100" onclick="app.closeModal()">Close</button>
+            <button id="save-services" class="px-4 py-2 rounded-md bg-indigo-600 text-white">Save Changes</button>
+          </div>
+        `);
+        document.body.appendChild(modal);
+        // Events
+        modal.querySelector('#add-service').addEventListener('click', () => {
+          const name = modal.querySelector('#new-s-name').value.trim();
+          const price = parseFloat(modal.querySelector('#new-s-price').value);
+          const duration = parseInt(modal.querySelector('#new-s-dur').value);
+          if (!name || isNaN(price) || isNaN(duration)) { this.toast('Please fill all fields for new service.', 'warning'); return; }
+          salon.services.push({ id: 's_' + Date.now(), name, price, duration });
+          this.saveData();
+          this.closeModal();
+          this.openManageServices(salonId);
+        });
+        modal.querySelector('#services-list').addEventListener('click', (e) => {
+          const btn = e.target.closest('button[data-action="delete"]');
+          if (!btn) return;
+          const id = btn.getAttribute('data-id');
+          salon.services = salon.services.filter(s => s.id !== id);
+          this.saveData();
+          this.closeModal();
+          this.openManageServices(salonId);
+        });
+        modal.querySelector('#save-services').addEventListener('click', () => {
+          const inputs = modal.querySelectorAll('#services-list [data-id]');
+          const map = {};
+          inputs.forEach(inp => {
+            const id = inp.getAttribute('data-id');
+            map[id] = map[id] || {};
+            map[id][inp.getAttribute('data-field')] = inp.type === 'number' ? Number(inp.value) : inp.value;
+          });
+          salon.services = salon.services.map(s => ({ ...s, ...(map[s.id] || {}) }));
+          this.saveData();
+          this.toast('Services updated.', 'success');
+          this.closeModal();
+          this.render();
+        });
+      },
+
+      // ---------- Reviews ----------
+      openReview(bookingId) {
+        const b = this.state.bookings.find(x => x.id === bookingId);
+        if (!b) return;
+        const modal = this.modal(`
+          <h3 class="text-lg font-semibold mb-3">Leave a Review</h3>
+          <form id="review-form" class="space-y-3">
+            <div>
+              <label class="block text-sm text-gray-700">Rating</label>
+              <select name="rating" class="border px-3 py-2 rounded w-full">
+                <option value="5">★★★★★</option>
+                <option value="4">★★★★☆</option>
+                <option value="3">★★★☆☆</option>
+                <option value="2">★★☆☆☆</option>
+                <option value="1">★☆☆☆☆</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-sm text-gray-700">Comment (optional)</label>
+              <textarea name="comment" rows="3" class="border px-3 py-2 rounded w-full" placeholder="Share your experience..."></textarea>
+            </div>
+            <div class="flex justify-end gap-2">
+              <button type="button" class="px-4 py-2 rounded-md bg-gray-100" onclick="app.closeModal()">Cancel</button>
+              <button type="submit" class="px-4 py-2 rounded-md bg-indigo-600 text-white">Submit</button>
+            </div>
+          </form>
+        `);
+        document.body.appendChild(modal);
+        modal.querySelector('#review-form').addEventListener('submit', (e) => {
+          e.preventDefault();
+          const fd = new FormData(e.target);
+          const rating = parseInt(fd.get('rating')) || 5;
+          const comment = (fd.get('comment') || '').toString();
+          const salon = this.state.salons.find(s => s.id === b.salonId);
+          salon.reviews = salon.reviews || [];
+          salon.reviews.push({ rating, comment, name: this.state.currentUser.name, date: new Date().toISOString() });
+          // update avg rating
+          const avg = salon.reviews.reduce((sum, r) => sum + (r.rating || 0), 0) / salon.reviews.length;
+          salon.rating = avg;
+          // mark booking reviewed
+          const idx = this.state.bookings.findIndex(x => x.id === b.id);
+          if (idx !== -1) this.state.bookings[idx].reviewed = true;
+          this.saveData();
+          this.toast('Thanks for your review!', 'success');
+          this.closeModal();
+          this.render();
+        });
+      },
+
+      // ---------- Auth Handlers ----------
+      handleLogin(e) {
+        e.preventDefault();
+        const fd = new FormData(e.target);
+        const email = fd.get('email');
+        const password = fd.get('password');
+        const users = JSON.parse(localStorage.getItem('sc_users') || '[]');
+        const user = users.find(u => u.email === email && u.password === password);
+        if (user) this.createSession(user); else this.toast('Invalid credentials. Please try again or sign up.', 'error');
+      },
+
+      handleSignup(e) {
+        e.preventDefault();
+        const fd = new FormData(e.target);
+        const newUser = Object.fromEntries(fd.entries());
+        const users = JSON.parse(localStorage.getItem('sc_users') || '[]');
+        if (users.find(u => u.email === newUser.email)) { this.toast('Email already exists.', 'warning'); return; }
+        newUser.id = Date.now();
+        users.push(newUser);
+        localStorage.setItem('sc_users', JSON.stringify(users));
+        this.createSession(newUser);
+      },
+
+      // ---------- Settings: Backup/Restore ----------
+      openSettings() {
+        document.getElementById('settings-modal').classList.remove('hidden');
+        document.getElementById('settings-modal').classList.add('flex');
+      },
+      closeSettings() {
+        const m = document.getElementById('settings-modal');
+        m.classList.add('hidden');
+        m.classList.remove('flex');
+      },
+      exportData() {
+        const data = {
+          users: JSON.parse(localStorage.getItem('sc_users') || '[]'),
+          salons: this.state.salons,
+          bookings: this.state.bookings,
+          exportedAt: new Date().toISOString(),
+          app: 'SalonConnect SPA'
+        };
+        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = 'salonconnect-backup.json'; a.click();
+        URL.revokeObjectURL(url);
+        this.toast('Backup downloaded.', 'success');
+      },
+      importData() {
+        const input = document.getElementById('import-file');
+        if (!input.files?.length) { this.toast('Choose a JSON file to import.', 'warning'); return; }
+        const file = input.files[0];
+        const reader = new FileReader();
+        reader.onload = () => {
+          try {
+            const data = JSON.parse(reader.result);
+            if (!data || typeof data !== 'object') throw new Error('Invalid file');
+            localStorage.setItem('sc_users', JSON.stringify(data.users || []));
+            localStorage.setItem('sc_salons', JSON.stringify(data.salons || []));
+            localStorage.setItem('sc_bookings', JSON.stringify(data.bookings || []));
+            // reload into state
+            this.loadData();
+            this.toast('Data imported successfully.', 'success');
+            this.closeSettings();
+            this.render();
+          } catch(err) {
+            this.toast('Import failed: Invalid JSON.', 'error');
+          }
+        };
+        reader.readAsText(file);
+      },
+      resetAllData() {
+        if (!confirm('This will clear all app data in this browser. Continue?')) return;
+        localStorage.removeItem('sc_users');
+        localStorage.removeItem('sc_session');
+        localStorage.removeItem('sc_salons');
+        localStorage.removeItem('sc_bookings');
+        this.state.currentUser = null;
+        this.seedData();
+        this.saveData();
+        this.checkAuth();
+        this.toast('App data reset.', 'info');
+        this.navigate('home');
+      },
+
+      // ---------- UI Helpers ----------
+      toast(message, type = 'success') {
+        const colors = {
+          success: 'bg-green-600 text-white',
+          error: 'bg-red-600 text-white',
+          warning: 'bg-amber-500 text-white',
+          info: 'bg-slate-700 text-white'
+        };
+        const box = document.createElement('div');
+        box.className = `${colors[type] || colors.info} rounded-md px-4 py-2 shadow-soft fade-in flex items-center gap-2`;
+        const icon = type==='success'?'check-circle': type==='error'?'circle-xmark': type==='warning'?'triangle-exclamation':'circle-info';
+        box.innerHTML = `<i class="fa-solid fa-${icon}"></i><span>${message}</span>`;
+        const cont = document.getElementById('toast-container');
+        cont.appendChild(box);
+        setTimeout(() => { box.style.opacity = '0'; box.style.transform = 'translateY(-4px)'; }, 2500);
+        setTimeout(() => cont.removeChild(box), 3200);
+      },
+
+      modal(innerHtml) {
+        const wrap = document.createElement('div');
+        wrap.className = 'fixed inset-0 z-[9999] flex items-center justify-center';
+        wrap.innerHTML = `
+          <div class="absolute inset-0 bg-black/50" onclick="app.closeModal()"></div>
+          <div class="relative card w-full max-w-2xl mx-4 p-5 bg-white fade-in">${innerHtml}</div>
+        `;
+        return wrap;
+      },
+      closeModal() {
+        document.querySelectorAll('.z-\\[9999\\]').forEach(m => m.remove());
+      }
+    };
+
+    // ---------- Start the app ----------
+    document.addEventListener('DOMContentLoaded', () => {
+      app.init();
+    });
+  </script>
 </body>
 </html>
