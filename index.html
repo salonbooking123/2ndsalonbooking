@@ -1,0 +1,678 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SalonConnect - Advanced Salon Booking</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f3f4f6; }
+        .fade-in { animation: fadeIn 0.3s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        .glass-nav { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); }
+    </style>
+</head>
+<body class="text-gray-800 flex flex-col min-h-screen">
+
+    <!-- Navigation -->
+    <nav class="glass-nav fixed w-full z-50 border-b border-gray-200 shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex items-center cursor-pointer" onclick="app.navigate('home')">
+                    <i class="fa-solid fa-scissors text-indigo-600 text-2xl mr-2"></i>
+                    <span class="font-bold text-xl tracking-tight text-indigo-900">SalonConnect</span>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <div id="nav-guest" class="flex space-x-4">
+                        <button onclick="app.navigate('login')" class="text-gray-600 hover:text-indigo-600 font-medium px-3 py-2">Login</button>
+                        <button onclick="app.navigate('signup')" class="bg-indigo-600 text-white hover:bg-indigo-700 px-4 py-2 rounded-md font-medium transition">Sign Up</button>
+                    </div>
+                    <div id="nav-user" class="hidden flex items-center space-x-4">
+                        <span id="user-greeting" class="text-gray-700 font-medium hidden md:block"></span>
+                        <button onclick="app.navigate('dashboard')" class="text-indigo-600 hover:text-indigo-800 font-medium">Dashboard</button>
+                        <button onclick="app.logout()" class="text-red-500 hover:text-red-700 font-medium ml-2"><i class="fa-solid fa-sign-out-alt"></i></button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content Area -->
+    <main id="app-root" class="flex-grow pt-20 pb-10 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto w-full">
+        <!-- Dynamic content will be injected here -->
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-white border-t border-gray-200 mt-auto">
+        <div class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
+            <p class="text-center text-gray-500 text-sm">&copy; 2023 SalonConnect. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <!-- JavaScript Application Logic -->
+    <script>
+        const app = {
+            state: {
+                currentUser: null, // { id, name, email, role: 'customer' | 'owner' }
+                view: 'home',
+                salons: [],
+                bookings: []
+            },
+
+            init() {
+                this.loadData();
+                this.checkAuth();
+                this.render();
+            },
+
+            loadData() {
+                // Load Users, Salons, Bookings from LocalStorage
+                const storedUsers = localStorage.getItem('sc_users');
+                const storedSalons = localStorage.getItem('sc_salons');
+                const storedBookings = localStorage.getItem('sc_bookings');
+                const storedSession = localStorage.getItem('sc_session');
+
+                if (!storedSalons) {
+                    // Seed Initial Data if empty
+                    this.seedData();
+                } else {
+                    this.state.salons = JSON.parse(storedSalons);
+                    this.state.bookings = storedBookings ? JSON.parse(storedBookings) : [];
+                }
+
+                if (storedSession) {
+                    this.state.currentUser = JSON.parse(storedSession);
+                }
+            },
+
+            seedData() {
+                const initialSalons = [
+                    {
+                        id: 1,
+                        name: "Luxe Hair Studio",
+                        ownerId: 101,
+                        location: "Downtown",
+                        image: "https://images.unsplash.com/photo-1560066984-138dadb4c035?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80",
+                        rating: 4.8,
+                        services: [
+                            { id: 's1', name: 'Haircut', price: 50, duration: 60 },
+                            { id: 's2', name: 'Hair Coloring', price: 120, duration: 120 }
+                        ]
+                    },
+                    {
+                        id: 2,
+                        name: "Urban Barber",
+                        ownerId: 102,
+                        location: "Westside",
+                        image: "https://images.unsplash.com/photo-1585747860715-2ba37e788b70?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80",
+                        rating: 4.5,
+                        services: [
+                            { id: 's3', name: 'Men\'s Cut', price: 35, duration: 45 },
+                            { id: 's4', name: 'Beard Trim', price: 25, duration: 30 }
+                        ]
+                    },
+                    {
+                        id: 3,
+                        name: "Serenity Spa & Salon",
+                        ownerId: 103,
+                        location: "Uptown",
+                        image: "https://images.unsplash.com/photo-1521590832169-7dad1a9feb11?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80",
+                        rating: 4.9,
+                        services: [
+                            { id: 's5', name: 'Facial', price: 80, duration: 60 },
+                            { id: 's6', name: 'Manicure', price: 40, duration: 45 }
+                        ]
+                    }
+                ];
+                localStorage.setItem('sc_salons', JSON.stringify(initialSalons));
+                this.state.salons = initialSalons;
+            },
+
+            saveData() {
+                localStorage.setItem('sc_salons', JSON.stringify(this.state.salons));
+                localStorage.setItem('sc_bookings', JSON.stringify(this.state.bookings));
+                // Users are handled separately in auth
+            },
+
+            checkAuth() {
+                if (this.state.currentUser) {
+                    document.getElementById('nav-guest').classList.add('hidden');
+                    document.getElementById('nav-user').classList.remove('hidden');
+                    document.getElementById('nav-user').classList.add('flex');
+                    document.getElementById('user-greeting').textContent = `Hi, ${this.state.currentUser.name}`;
+                } else {
+                    document.getElementById('nav-guest').classList.remove('hidden');
+                    document.getElementById('nav-user').classList.add('hidden');
+                    document.getElementById('nav-user').classList.remove('flex');
+                }
+            },
+
+            navigate(viewName, params = null) {
+                this.state.view = viewName;
+                this.state.viewParams = params;
+                this.render();
+                window.scrollTo(0,0);
+            },
+
+            logout() {
+                this.state.currentUser = null;
+                localStorage.removeItem('sc_session');
+                this.checkAuth();
+                this.navigate('home');
+            },
+
+            // --- Views ---
+
+            render() {
+                const root = document.getElementById('app-root');
+                root.innerHTML = ''; // Clear content
+
+                switch (this.state.view) {
+                    case 'home':
+                        root.innerHTML = this.views.home();
+                        this.attachHomeListeners();
+                        break;
+                    case 'login':
+                        root.innerHTML = this.views.login();
+                        break;
+                    case 'signup':
+                        root.innerHTML = this.views.signup();
+                        break;
+                    case 'salonDetail':
+                        root.innerHTML = this.views.salonDetail(this.state.viewParams);
+                        break;
+                    case 'dashboard':
+                        if (!this.state.currentUser) {
+                            this.navigate('login');
+                            return;
+                        }
+                        root.innerHTML = this.state.currentUser.role === 'owner' 
+                            ? this.views.ownerDashboard() 
+                            : this.views.customerDashboard();
+                        break;
+                    default:
+                        root.innerHTML = this.views.home();
+                }
+            },
+
+            views: {
+                home() {
+                    return `
+                        <div class="fade-in space-y-12">
+                            <!-- Hero Section -->
+                            <div class="relative rounded-2xl overflow-hidden bg-indigo-900 text-white shadow-xl">
+                                <div class="absolute inset-0 bg-black opacity-40"></div>
+                                <img src="https://images.unsplash.com/photo-1562322140-8baeececf3df?ixlib=rb-4.0.3&auto=format&fit=crop&w=1600&q=80" class="absolute inset-0 w-full h-full object-cover mix-blend-overlay" alt="Salon background">
+                                <div class="relative z-10 px-8 py-20 md:py-32 text-center">
+                                    <h1 class="text-4xl md:text-6xl font-extrabold mb-6">Find Your Perfect Style</h1>
+                                    <p class="text-lg md:text-xl mb-8 text-indigo-100 max-w-2xl mx-auto">Discover top-rated salons and book appointments instantly near you.</p>
+                                    <div class="max-w-2xl mx-auto bg-white rounded-lg p-2 flex flex-col md:flex-row gap-2 shadow-lg">
+                                        <input id="search-input" type="text" placeholder="Search salons or services..." class="flex-grow px-4 py-3 text-gray-800 rounded-md focus:outline-none">
+                                        <button onclick="app.handleSearch()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-8 py-3 rounded-md font-bold transition">Search</button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Featured Salons -->
+                            <div>
+                                <h2 class="text-2xl font-bold text-gray-900 mb-6">Featured Salons</h2>
+                                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8" id="salon-list">
+                                    ${app.state.salons.map(salon => app.components.salonCard(salon)).join('')}
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                },
+
+                login() {
+                    return `
+                        <div class="fade-in max-w-md mx-auto bg-white p-8 rounded-xl shadow-md mt-10">
+                            <h2 class="text-2xl font-bold text-center mb-6 text-gray-800">Welcome Back</h2>
+                            <form onsubmit="app.handleLogin(event)" class="space-y-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700">Email</label>
+                                    <input type="email" name="email" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700">Password</label>
+                                    <input type="password" name="password" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
+                                </div>
+                                <button type="submit" class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">Sign In</button>
+                            </form>
+                            <p class="mt-4 text-center text-sm text-gray-600">
+                                Don't have an account? <a href="#" onclick="app.navigate('signup')" class="font-medium text-indigo-600 hover:text-indigo-500">Sign up</a>
+                            </p>
+                        </div>
+                    `;
+                },
+
+                signup() {
+                    return `
+                        <div class="fade-in max-w-md mx-auto bg-white p-8 rounded-xl shadow-md mt-10">
+                            <h2 class="text-2xl font-bold text-center mb-6 text-gray-800">Create Account</h2>
+                            <form onsubmit="app.handleSignup(event)" class="space-y-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700">Full Name</label>
+                                    <input type="text" name="name" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700">Email</label>
+                                    <input type="email" name="email" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700">Password</label>
+                                    <input type="password" name="password" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700">Account Type</label>
+                                    <select name="role" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
+                                        <option value="customer">Customer</option>
+                                        <option value="owner">Salon Owner</option>
+                                    </select>
+                                </div>
+                                <button type="submit" class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">Sign Up</button>
+                            </form>
+                            <p class="mt-4 text-center text-sm text-gray-600">
+                                Already have an account? <a href="#" onclick="app.navigate('login')" class="font-medium text-indigo-600 hover:text-indigo-500">Sign in</a>
+                            </p>
+                        </div>
+                    `;
+                },
+
+                salonDetail(id) {
+                    const salon = app.state.salons.find(s => s.id == id);
+                    if (!salon) return `<div class="text-center p-10">Salon not found</div>`;
+
+                    return `
+                        <div class="fade-in bg-white rounded-xl shadow-lg overflow-hidden">
+                            <div class="relative h-64 md:h-80">
+                                <img src="${salon.image}" class="w-full h-full object-cover" alt="${salon.name}">
+                                <div class="absolute bottom-0 left-0 bg-gradient-to-t from-black p-6 w-full">
+                                    <h1 class="text-white text-3xl font-bold">${salon.name}</h1>
+                                    <p class="text-gray-200"><i class="fa-solid fa-location-dot mr-2"></i>${salon.location}</p>
+                                </div>
+                            </div>
+                            
+                            <div class="p-6 md:p-8 flex flex-col md:flex-row gap-8">
+                                <div class="md:w-2/3 space-y-6">
+                                    <section>
+                                        <h2 class="text-xl font-bold text-gray-900 mb-4">Services Menu</h2>
+                                        <div class="space-y-3">
+                                            ${salon.services.map(service => `
+                                                <div class="flex justify-between items-center p-4 border border-gray-100 rounded-lg hover:bg-gray-50 transition">
+                                                    <div>
+                                                        <h3 class="font-medium text-gray-900">${service.name}</h3>
+                                                        <p class="text-sm text-gray-500">${service.duration} mins</p>
+                                                    </div>
+                                                    <div class="flex items-center gap-4">
+                                                        <span class="font-bold text-indigo-600">$${service.price}</span>
+                                                        <button onclick="app.handleServiceSelect('${service.id}', '${service.name}', ${service.price})" 
+                                                            class="px-4 py-1 bg-gray-100 text-gray-700 text-sm rounded hover:bg-indigo-100 hover:text-indigo-700">
+                                                            Select
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            `).join('')}
+                                        </div>
+                                    </section>
+                                </div>
+
+                                <div class="md:w-1/3">
+                                    <div class="bg-gray-50 p-6 rounded-xl border border-gray-200 sticky top-24">
+                                        <h3 class="text-lg font-bold text-gray-900 mb-4">Book Appointment</h3>
+                                        <form onsubmit="app.handleBookingSubmit(event, ${salon.id})" id="booking-form">
+                                            <div class="mb-4">
+                                                <label class="block text-sm font-medium text-gray-700 mb-1">Service</label>
+                                                <input type="text" id="selected-service-name" disabled value="Select a service" class="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100 text-gray-500">
+                                                <input type="hidden" name="serviceId" id="selected-service-id" required>
+                                                <input type="hidden" name="servicePrice" id="selected-service-price">
+                                            </div>
+                                            <div class="mb-4">
+                                                <label class="block text-sm font-medium text-gray-700 mb-1">Date</label>
+                                                <input type="date" name="date" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500">
+                                            </div>
+                                            <div class="mb-4">
+                                                <label class="block text-sm font-medium text-gray-700 mb-1">Time</label>
+                                                <select name="time" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500">
+                                                    <option value="">Select Time</option>
+                                                    <option value="09:00">09:00 AM</option>
+                                                    <option value="10:00">10:00 AM</option>
+                                                    <option value="11:00">11:00 AM</option>
+                                                    <option value="12:00">12:00 PM</option>
+                                                    <option value="13:00">01:00 PM</option>
+                                                    <option value="14:00">02:00 PM</option>
+                                                    <option value="15:00">03:00 PM</option>
+                                                    <option value="16:00">04:00 PM</option>
+                                                    <option value="17:00">05:00 PM</option>
+                                                </select>
+                                            </div>
+                                            <button type="submit" class="w-full py-3 px-4 bg-indigo-600 text-white font-bold rounded-md hover:bg-indigo-700 transition shadow-md">
+                                                Confirm Booking
+                                            </button>
+                                        </form>
+                                        <p class="text-xs text-gray-500 mt-4 text-center">Login required to book.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                },
+
+                customerDashboard() {
+                    const myBookings = app.state.bookings.filter(b => b.customerId === app.state.currentUser.email).reverse();
+                    
+                    return `
+                        <div class="fade-in space-y-8">
+                            <div class="flex items-center justify-between">
+                                <h1 class="text-3xl font-bold text-gray-900">My Dashboard</h1>
+                                <div class="bg-indigo-100 text-indigo-800 px-4 py-2 rounded-full text-sm font-medium">Customer Account</div>
+                            </div>
+
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                                    <div class="text-gray-500 text-sm">Total Bookings</div>
+                                    <div class="text-3xl font-bold text-gray-900 mt-1">${myBookings.length}</div>
+                                </div>
+                                <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                                    <div class="text-gray-500 text-sm">Next Appointment</div>
+                                    <div class="text-xl font-bold text-gray-900 mt-1">${myBookings.length > 0 ? myBookings[0].date : 'None'}</div>
+                                </div>
+                            </div>
+
+                            <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                                <div class="px-6 py-4 border-b border-gray-200">
+                                    <h2 class="text-lg font-semibold text-gray-800">Appointment History</h2>
+                                </div>
+                                <div class="overflow-x-auto">
+                                    <table class="min-w-full divide-y divide-gray-200">
+                                        <thead class="bg-gray-50">
+                                            <tr>
+                                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Salon</th>
+                                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Service</th>
+                                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date & Time</th>
+                                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Price</th>
+                                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody class="bg-white divide-y divide-gray-200">
+                                            ${myBookings.length ? myBookings.map(b => `
+                                                <tr>
+                                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${b.salonName}</td>
+                                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${b.serviceName}</td>
+                                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${b.date} at ${b.time}</td>
+                                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">$${b.price}</td>
+                                                    <td class="px-6 py-4 whitespace-nowrap">
+                                                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">Confirmed</span>
+                                                    </td>
+                                                </tr>
+                                            `).join('') : `<tr><td colspan="5" class="px-6 py-8 text-center text-gray-500">No bookings found. <button onclick="app.navigate('home')" class="text-indigo-600 hover:underline">Book now</button></td></tr>`}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                },
+
+                ownerDashboard() {
+                    const mySalon = app.state.salons.find(s => s.ownerId === app.state.currentUser.id);
+                    
+                    if (!mySalon) {
+                        return `
+                            <div class="fade-in max-w-2xl mx-auto bg-white p-8 rounded-xl shadow-md mt-10">
+                                <h2 class="text-2xl font-bold text-center mb-6 text-gray-800">Register Your Salon</h2>
+                                <p class="text-center text-gray-600 mb-8">You haven't listed a salon yet. Provide details below to get started.</p>
+                                <form onsubmit="app.handleSalonCreate(event)" class="space-y-4">
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700">Salon Name</label>
+                                        <input type="text" name="name" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700">Location (City/Area)</label>
+                                        <input type="text" name="location" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700">Image URL (Optional)</label>
+                                        <input type="url" name="image" placeholder="https://..." class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
+                                    </div>
+                                    <button type="submit" class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">Create Salon Profile</button>
+                                </form>
+                            </div>
+                        `;
+                    }
+
+                    const appointments = app.state.bookings.filter(b => b.salonId === mySalon.id).reverse();
+
+                    return `
+                         <div class="fade-in space-y-8">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <h1 class="text-3xl font-bold text-gray-900">Owner Dashboard</h1>
+                                    <p class="text-gray-500">Managing: ${mySalon.name}</p>
+                                </div>
+                                <button class="bg-indigo-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-indigo-700">Edit Salon Details</button>
+                            </div>
+
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                                    <div class="text-gray-500 text-sm">Total Appointments</div>
+                                    <div class="text-3xl font-bold text-gray-900 mt-1">${appointments.length}</div>
+                                </div>
+                                <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                                    <div class="text-gray-500 text-sm">Revenue (Est.)</div>
+                                    <div class="text-3xl font-bold text-gray-900 mt-1">${appointments.reduce((sum, b) => sum + b.price, 0)}</div>
+                                </div>
+                            </div>
+
+                            <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                                <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
+                                    <h2 class="text-lg font-semibold text-gray-800">Upcoming Appointments</h2>
+                                </div>
+                                <div class="overflow-x-auto">
+                                    <table class="min-w-full divide-y divide-gray-200">
+                                        <thead class="bg-gray-50">
+                                            <tr>
+                                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Customer</th>
+                                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Service</th>
+                                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date & Time</th>
+                                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Price</th>
+                                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody class="bg-white divide-y divide-gray-200">
+                                            ${appointments.length ? appointments.map(b => `
+                                                <tr>
+                                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${b.customerName || 'Guest'}</td>
+                                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${b.serviceName}</td>
+                                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${b.date} at ${b.time}</td>
+                                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${b.price}</td>
+                                                    <td class="px-6 py-4 whitespace-nowrap">
+                                                        <button class="text-red-600 hover:text-red-900 text-sm font-medium">Cancel</button>
+                                                    </td>
+                                                </tr>
+                                            `).join('') : `<tr><td colspan="5" class="px-6 py-8 text-center text-gray-500">No appointments yet.</td></tr>`}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }
+            },
+
+            components: {
+                salonCard(salon) {
+                    return `
+                        <div onclick="app.navigate('salonDetail', ${salon.id})" class="bg-white rounded-xl shadow-sm hover:shadow-md transition cursor-pointer overflow-hidden border border-gray-100 flex flex-col h-full">
+                            <div class="h-48 overflow-hidden relative">
+                                <img src="${salon.image}" alt="${salon.name}" class="w-full h-full object-cover hover:scale-105 transition duration-500">
+                                <div class="absolute top-3 right-3 bg-white px-2 py-1 rounded-md shadow text-xs font-bold text-indigo-600 flex items-center">
+                                    <i class="fa-solid fa-star text-yellow-400 mr-1"></i> ${salon.rating}
+                                </div>
+                            </div>
+                            <div class="p-5 flex flex-col flex-grow">
+                                <h3 class="text-xl font-bold text-gray-900 mb-1">${salon.name}</h3>
+                                <p class="text-gray-500 text-sm mb-4 flex items-center"><i class="fa-solid fa-location-dot mr-2 text-indigo-400"></i> ${salon.location}</p>
+                                <div class="flex flex-wrap gap-2 mt-auto">
+                                    ${salon.services.slice(0, 2).map(s => `<span class="bg-gray-100 text-gray-600 text-xs px-2 py-1 rounded">${s.name}</span>`).join('')}
+                                    ${salon.services.length > 2 ? `<span class="bg-gray-100 text-gray-600 text-xs px-2 py-1 rounded">+${salon.services.length - 2} more</span>` : ''}
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }
+            },
+
+            // --- Handlers ---
+            
+            attachHomeListeners() {
+                // Add listeners for home page elements if needed after render
+            },
+
+            handleSearch() {
+                const query = document.getElementById('search-input').value.toLowerCase();
+                const filtered = this.state.salons.filter(s => 
+                    s.name.toLowerCase().includes(query) || 
+                    s.location.toLowerCase().includes(query) ||
+                    s.services.some(srv => srv.name.toLowerCase().includes(query))
+                );
+                
+                const container = document.getElementById('salon-list');
+                if(filtered.length === 0) {
+                    container.innerHTML = `<div class="col-span-3 text-center py-10 text-gray-500">No salons found matching "${query}"</div>`;
+                } else {
+                    container.innerHTML = filtered.map(s => this.components.salonCard(s)).join('');
+                }
+            },
+
+            handleLogin(e) {
+                e.preventDefault();
+                const formData = new FormData(e.target);
+                const email = formData.get('email');
+                const password = formData.get('password');
+
+                // Fetch users from local storage
+                const users = JSON.parse(localStorage.getItem('sc_users') || '[]');
+                const user = users.find(u => u.email === email && u.password === password);
+
+                if (user) {
+                    this.createSession(user);
+                } else {
+                    alert('Invalid credentials. Please try again or sign up.'); // Basic alert for simplicity
+                }
+            },
+
+            handleSignup(e) {
+                e.preventDefault();
+                const formData = new FormData(e.target);
+                const newUser = Object.fromEntries(formData.entries());
+
+                const users = JSON.parse(localStorage.getItem('sc_users') || '[]');
+                if (users.find(u => u.email === newUser.email)) {
+                    alert('Email already exists.');
+                    return;
+                }
+
+                newUser.id = Date.now(); // Assign unique ID
+                users.push(newUser);
+                localStorage.setItem('sc_users', JSON.stringify(users));
+                
+                this.createSession(newUser);
+            },
+
+            handleSalonCreate(e) {
+                e.preventDefault();
+                const formData = new FormData(e.target);
+                const salonData = Object.fromEntries(formData.entries());
+                
+                const newSalon = {
+                    id: Date.now(),
+                    ownerId: this.state.currentUser.id,
+                    name: salonData.name,
+                    location: salonData.location,
+                    image: salonData.image || "https://images.unsplash.com/photo-1521590832169-7dad1a9feb11?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80",
+                    rating: 5.0, // New salons start with 5 stars
+                    services: [
+                        // Default starter services
+                        { id: 's_def_1', name: 'Standard Haircut', price: 40, duration: 45 },
+                        { id: 's_def_2', name: 'Shampoo & Blow Dry', price: 30, duration: 30 }
+                    ]
+                };
+
+                this.state.salons.push(newSalon);
+                this.saveData();
+                this.navigate('dashboard');
+            },
+
+            createSession(user) {
+                // Remove password before saving to session
+                const sessionUser = { ...user };
+                delete sessionUser.password;
+                
+                this.state.currentUser = sessionUser;
+                localStorage.setItem('sc_session', JSON.stringify(sessionUser));
+                
+                this.checkAuth();
+                this.navigate('dashboard');
+            },
+
+            handleServiceSelect(id, name, price) {
+                if (!this.state.currentUser) {
+                    alert('Please login to book an appointment.');
+                    this.navigate('login');
+                    return;
+                }
+                
+                document.getElementById('selected-service-name').value = name;
+                document.getElementById('selected-service-id').value = id;
+                document.getElementById('selected-service-price').value = price;
+                
+                // Visual feedback
+                document.getElementById('booking-form').scrollIntoView({ behavior: 'smooth' });
+            },
+
+            handleBookingSubmit(e, salonId) {
+                e.preventDefault();
+                if (!this.state.currentUser) {
+                    this.navigate('login');
+                    return;
+                }
+
+                const serviceId = document.getElementById('selected-service-id').value;
+                if (!serviceId) {
+                    alert('Please select a service first.');
+                    return;
+                }
+
+                const formData = new FormData(e.target);
+                const bookingData = {
+                    id: Date.now(),
+                    salonId: salonId,
+                    salonName: this.state.salons.find(s => s.id === salonId).name,
+                    customerId: this.state.currentUser.email,
+                    customerName: this.state.currentUser.name,
+                    serviceId: serviceId,
+                    serviceName: document.getElementById('selected-service-name').value,
+                    price: parseFloat(document.getElementById('selected-service-price').value),
+                    date: formData.get('date'),
+                    time: formData.get('time'),
+                    status: 'confirmed'
+                };
+
+                this.state.bookings.push(bookingData);
+                this.saveData();
+                
+                alert('Booking Confirmed!');
+                this.navigate('dashboard');
+            }
+        };
+
+        // Start the app
+        document.addEventListener('DOMContentLoaded', () => {
+            app.init();
+        });
+
+    </script>
+</body>
+</html>
